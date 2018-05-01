@@ -1,3 +1,5 @@
+import numpy as np
+from scipy import sparse
 
 class Sparse(object):
     """Wrapper for sparse vectors. Makes joining them together easier.
@@ -28,6 +30,13 @@ class Sparse(object):
         oh, ow = other.size
         size = [h + oh, max(w, ow)]
         return Sparse(row_indices, col_indices, values, size)
+
+    def to_numpy(self, as_matrix=False):
+        matrix = sparse.coo_matrix((self.values, (self.row_indices, self.col_indices)), self.size)
+        if as_matrix:
+            return matrix
+
+        return np.asarray(matrix.todense(), dtype=np.float32)
 
     def to_torch(self):
         import torch
