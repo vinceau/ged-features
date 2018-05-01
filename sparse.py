@@ -5,11 +5,11 @@ class Sparse(object):
     """Wrapper for sparse vectors. Makes joining them together easier.
     """
 
-    def __init__(self, row_indices, col_indices, values, size):
-        self.row_indices = row_indices
-        self.col_indices = col_indices
-        self.values = values
+    def __init__(self, size, row_indices=None, col_indices=None, values=None):
         self.size = size
+        self.row_indices = row_indices if row_indices else []
+        self.col_indices = col_indices if col_indices else []
+        self.values = values if values else []
 
     def __add__(self, other):
         """Not really add but concatenate the two sparses together
@@ -20,7 +20,7 @@ class Sparse(object):
         values = self.values + other.values
         oh, ow = other.size
         size = [max(h, oh), w + ow]
-        return Sparse(row_indices, col_indices, values, size)
+        return Sparse(size, row_indices, col_indices, values)
 
     def stack(self, other):
         h, w = self.size
@@ -29,7 +29,7 @@ class Sparse(object):
         values = self.values + other.values
         oh, ow = other.size
         size = [h + oh, max(w, ow)]
-        return Sparse(row_indices, col_indices, values, size)
+        return Sparse(size, row_indices, col_indices, values)
 
     def to_numpy(self, as_matrix=False):
         matrix = sparse.coo_matrix((self.values, (self.row_indices, self.col_indices)), self.size)
@@ -40,6 +40,9 @@ class Sparse(object):
 
     def to_torch(self):
         import torch
+        if not self.values:  # we're an empty sparse
+            return torch.sparse.FloatTensor(torch.Size(self.size))
+
         indices = torch.LongTensor([self.row_indices, self.col_indices])
         values = torch.FloatTensor(self.values)
         return torch.sparse.FloatTensor(
@@ -55,7 +58,7 @@ class RowSparse(Sparse):
 
     def __init__(self, col_indices, values, length):
         row_indices = [0] * len(col_indices)
-        super(RowSparse, self).__init__(row_indices, col_indices, values, [1, length])
+        super(RowSparse, self).__init__([1, length], row_indices, col_indices, values)
 
 
 class SimpleRowSparse(RowSparse):

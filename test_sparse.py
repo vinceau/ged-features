@@ -8,7 +8,7 @@ class TestDecoderRNN(unittest.TestCase):
     def test_add(self):
         """Add concatenates sparses length wise
         """
-        s = Sparse([0, 1], [3,4], [1,1], size=[5, 5])
+        s = Sparse(size=[5, 5], row_indices=[0, 1], col_indices=[3,4], values=[1,1])
         t = RowSparse([2, 3], [1,1], length=5)
         res = s + t
         self.assertEqual(res.size[0], 5)
