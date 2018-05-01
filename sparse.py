@@ -54,7 +54,7 @@ class SimpleRowSparse(RowSparse):
     """
     def __init__(self, values):
         length = len(values)
-        col_indices = range(length)
+        col_indices = list(range(length))
         super(SimpleRowSparse, self).__init__(col_indices, values, length)
 
 
