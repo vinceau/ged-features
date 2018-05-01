@@ -32,11 +32,11 @@ class Sparse(object):
         return Sparse(size, row_indices, col_indices, values)
 
     def to_numpy(self, as_matrix=False):
-        matrix = sparse.coo_matrix((self.values, (self.row_indices, self.col_indices)), self.size)
+        matrix = sparse.coo_matrix((self.values, (self.row_indices, self.col_indices)), self.size, dtype=np.float32)
         if as_matrix:
             return matrix
 
-        return np.asarray(matrix.todense(), dtype=np.float32)
+        return np.asarray(matrix.todense())
 
     def to_torch(self):
         import torch
