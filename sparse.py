@@ -1,4 +1,3 @@
-import torch
 
 class Sparse(object):
     """Wrapper for sparse vectors. Makes joining them together easier.
@@ -31,6 +30,7 @@ class Sparse(object):
         return Sparse(row_indices, col_indices, values, size)
 
     def to_torch(self):
+        import torch
         indices = torch.LongTensor([self.row_indices, self.col_indices])
         values = torch.FloatTensor(self.values)
         return torch.sparse.FloatTensor(
