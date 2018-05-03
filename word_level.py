@@ -19,6 +19,7 @@ from .log_prob import LogProbs
 
 import string
 
+from functools import reduce
 import argparse
 import logging
 import numpy as np
