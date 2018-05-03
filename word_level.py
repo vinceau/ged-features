@@ -377,7 +377,11 @@ class WordFeatures(object):
         res = self.sent2feat_stacked(sentence)
         return res
 
-    def batch_features(self, sents, max_sent_length):
+    def batch_features(self, sents, max_sent_length=None):
+        # take the first sentence as the max length if not provided
+        if not max_sent_length:
+            max_sent_length = len(sents[0])
+
         batch = []
         for s in sents:
             if not s:  # we have an empty padding sentence
