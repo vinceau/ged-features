@@ -22,6 +22,10 @@ class Sparse(object):
         size = [max(h, oh), w + ow]
         return Sparse(size, row_indices, col_indices, values)
 
+    def transpose(self):
+        size = list(reversed(self.size))
+        return Sparse(size, self.col_indices, self.row_indices, self.values)
+
     def stack(self, other):
         h, w = self.size
         row_indices = self.row_indices + [h + i for i in other.row_indices]
