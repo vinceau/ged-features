@@ -304,7 +304,7 @@ class WordFeatures(object):
             res.append(SimpleRowSparse([i + 1, len(sent) - i]))
         return res
 
-    def _get_sparse(self, sentence, stacked=False):
+    def sent2feat(self, sentence):
         # first get sentence only word features
         # list of Sparse() for each word
         features = []
@@ -333,22 +333,12 @@ class WordFeatures(object):
             assert(joined.size[1] == self.sparse_length())
             sparses.append(joined)
 
-        if stacked and sparses:
-            # stack them together
-            res = sparses[0]
-            for s in sparses[1:]:
-                res = res.stack(s)
-            return res
-
         return sparses
 
-    def _sent2feat(self, sentence, stacked=False, dense=False):
+    def sent2feat_stacked(self, sentence):
         """
-        If stacked is True, the word features will be stacked together
+        The word features will be stacked together
         as a single tensor of size: sentence_length x self.sparse_length()
-
-        If dense is True, to_dense() will be called before the tensors
-        of the word features are returned.
 
         * first two characters as the prefix of the current word
         * last two characters as the suffix of the current word
@@ -358,26 +348,20 @@ class WordFeatures(object):
         * log probability of word bi-grams starts
         * each one comes with a bias feature???
         """
-        sparses = self._get_sparse(sentence)
+        # returns a list of sparses
+        sparses = self.sent2feat(sentence)
 
-        if stacked and sparses:
-            # stack them together
-            res = sparses[0]
-            for s in sparses[1:]:
-                res = res.stack(s)
-            res = res.to_torch()
-            if dense:
-                res = res.to_dense()
-        else:
-            res = [s.to_torch() for s in sparses]
-            if dense:
-                res = [s.to_dense() for r in res]
+        # stack them together
+        res = sparses[0]
+        for s in sparses[1:]:
+            res = res.stack(s)
 
         return res
 
-    def features(self, sentence, stacked=False, dense=False):
+    def features(self, sentence):
         # get the sentence features
-        res = self._sent2feat(sentence, stacked=stacked, dense=dense)
+        # sentence_length x self.sparse_length()
+        res = self.sent2feat_stacked(sentence)
 
         # unigrams
         unilp = None
@@ -399,7 +383,7 @@ class WordFeatures(object):
             if not s:  # we have an empty padding sentence
                 vec = torch.sparse.FloatTensor(max_sent_length, self.sparse_length())
             else:
-                vec = self._get_sparse(s, stacked=True)
+                vec = self.sent2feat_stacked(s)
                 # set the number of rows
                 vec.size[0] = max_sent_length
                 vec = vec.to_torch()
