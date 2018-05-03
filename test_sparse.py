@@ -1,6 +1,6 @@
 import unittest
 
-from sparse import Sparse, RowSparse, SimpleRowSparse, ZeroOneRowSparse
+from .sparse import Sparse, RowSparse, SimpleRowSparse, ZeroOneRowSparse
 
 
 class TestDecoderRNN(unittest.TestCase):

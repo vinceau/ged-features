@@ -1,6 +1,6 @@
 import unittest
 
-from word_level import WordSparse
+from .word_level import WordSparse
 
 
 class TestWordSparse(unittest.TestCase):

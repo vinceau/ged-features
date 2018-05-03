@@ -18,8 +18,8 @@ returns a 3-tuple
 from __future__ import division
 
 
-from sparse import ZeroOneRowSparse, SimpleRowSparse
-from log_prob import LogProbs
+from .sparse import ZeroOneRowSparse, SimpleRowSparse
+from .log_prob import LogProbs
 
 import string
 import torch
