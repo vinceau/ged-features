@@ -256,16 +256,13 @@ class POSSparse(object):
 
 class WordFeatures(object):
 
-    def __init__(self, unigrams=None, bigrams=None, min_pos_freq=1, join_posgrams=True, use_static=True, use_posgrams=True, use_word_positions=True):
+    def __init__(self, ngrams=None, min_pos_freq=1, join_posgrams=True, use_static=True, use_posgrams=True, use_word_positions=True):
         self.ps = POSSparse(window=1, min_pos_freq=min_pos_freq, join_posgrams=join_posgrams)
         self.ws = WordSparse(num_chars=2)
 
         # load the ngram data
+        self.ngrams = ngrams
         self.log_probs = LogProbs()
-        if unigrams:
-            self.log_probs.add_ngram_data(1, unigrams)
-        if bigrams:
-            self.log_probs.add_ngram_data(2, bigrams)
 
         # make sure at least one of the features is enabled
         if not any([use_static, use_posgrams, use_word_positions]):
@@ -274,6 +271,15 @@ class WordFeatures(object):
         self.use_static = use_static
         self.use_posgrams = use_posgrams
         self.use_word_positions = use_word_positions
+
+    def add_ngram_data(self, list_of_data):
+        if not self.ngrams:
+            print('ngrams isn\'t enabled during declaration')
+            return
+
+        assert(len(list_of_data) == self.ngrams)
+        for n, data in zip(list(range(1, self.ngrams + 1)), list_of_data):
+            self.log_probs.add_ngram_data(n, data)
 
     def preprocess(self, all_sentences):
         for s in all_sentences:
@@ -292,6 +298,13 @@ class WordFeatures(object):
         if self.use_word_positions:
             # plus two for word pos from start, and from end
             total += 2
+        if self.ngrams:
+            # we will always add the unigrams
+            total += 1
+            # plus two for word pos from start, and from end
+            if self.ngrams >= 2:
+                # the min and max for bigram probs
+                total += 2
         return total
 
     def word_position_sparse(self, sent):
@@ -321,6 +334,10 @@ class WordFeatures(object):
         if self.use_word_positions:
             positions = self.word_position_sparse(sentence)
             features.append(positions)
+
+        if self.ngrams:
+            ngram_feats = self.get_ngram_feats(sentence)
+            features.append(ngram_feats)
 
         # make sure we have a feature for each word
         assert(all(len(sentence) == len(f) for f in features))
@@ -362,17 +379,7 @@ class WordFeatures(object):
         # get the sentence features
         # sentence_length x self.sparse_length()
         res = self.sent2feat_stacked(sentence)
-
-        # unigrams
-        unilp = None
-        if self.log_probs.has_ngram_data(1):
-            unilp = self.log_probs.ngram_log_probs(1, sentence)
-        # bigrams
-        bilp = None
-        if self.log_probs.has_ngram_data(2):
-            bilp = self.log_probs.ngram_log_probs(2, sentence)
-
-        return res, unilp, bilp
+        return res
 
     def features_dense(self, sentence, stacked=False):
         return self.features(sentence, stacked=stacked, dense=True)
@@ -393,41 +400,38 @@ class WordFeatures(object):
 
         return torch.stack(batch, dim=1)
 
+    def get_ngram_feats(self, sentence):
+        if not self.ngrams:
+            print('ngrams isn\'t enabled')
+            return
+
+        # get unigram data first
+        probs = self.log_probs.ngram_log_probs(1, sentence)
+        res = [[p] for p in probs]
+
+        # get bigram data
+        if self.ngrams >= 2:
+            bigrams = self.log_probs.ngram_log_probs(2, sentence)
+            left_bigrams = [probs[0]] + bigrams
+            right_bigrams = bigrams + [probs[-1]]
+            for i, (l, r) in enumerate(zip(left_bigrams, right_bigrams)):
+                res[i].extend([min(l,r), max(l, r)])
+
+        return [SimpleRowSparse(p) for p in res]
+
 
 """
 import json
 with open('test.json', 'r') as f:
     sents = json.load(f)['data']
 
-inp = sents[0]['input_sentence']
-out = sents[0]['corrected_sentence']
-ps = POSSparse()
-pg = ps.sent2posgram(inp)
-ws = WordSparse()
-#for w in inp:
-#    print(w)
-#    print(ws.word2feat(w))
-#print(pg)
-path1 = '/data/qu009/data/ngrams/unigram_counts.json'
-path2 = '/data/qu009/data/ngrams/bigram_counts.json'
-wf = WordFeatures(path1, path2)
+all_sents = [sb['input_sentence'] for sb in sents]
 
-embed_size = 300
-batch_size = 64
-from functions import fill_batch
-import generators as gens
-train_txt = "fce-data/train.kaneko.txt"
-gen1 = gens.word_list(train_txt)
-gen2 = gens.batch(gens.sorted_parallel(gen1, embed_size*batch_size), batch_size)
-batchs = [b for b in gen2]
-bl = list(range(len(batchs)))
-
-# preprocess the word features
-all_sents = []
-for n, j in enumerate(bl):
-    batch = fill_batch([b[-1].split() for b in batchs[j]])
-    all_sents.extend(batch)
-
+wf = WordFeatures(ngrams=2)
+wf.add_ngram_data([
+    '/data/qu009/data/other_data/ngrams/unigram_counts.json',
+    '/data/qu009/data/other_data/ngrams/bigram_counts.json',
+])
 wf.preprocess(all_sents)
 res = wf.features('so they said to do that'.split())
 """
