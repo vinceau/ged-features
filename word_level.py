@@ -8,21 +8,16 @@ wf.preprocess(all_sents)
 where all_sents is a list of all sentences in the training data
 
 wf.features(sentence)
-returns a 3-tuple
-1. individual word level features as torch.sparse.FloatTensor
-2. unigram features
-3. bigram features
 """
 
 
 from __future__ import division
 
 
-from .sparse import ZeroOneRowSparse, SimpleRowSparse
+from .sparse import ZeroOneRowSparse, SimpleRowSparse, Sparse
 from .log_prob import LogProbs
 
 import string
-import torch
 
 import argparse
 import logging
@@ -381,24 +376,18 @@ class WordFeatures(object):
         res = self.sent2feat_stacked(sentence)
         return res
 
-    def features_dense(self, sentence, stacked=False):
-        return self.features(sentence, stacked=stacked, dense=True)
-
-    def batch_features(self, sents, max_sent_length, dense=False):
+    def batch_features(self, sents, max_sent_length):
         batch = []
         for s in sents:
             if not s:  # we have an empty padding sentence
-                vec = torch.sparse.FloatTensor(max_sent_length, self.sparse_length())
+                vec = Sparse([max_sent_length, self.sparse_length()])
             else:
                 vec = self.sent2feat_stacked(s)
                 # set the number of rows
                 vec.size[0] = max_sent_length
-                vec = vec.to_torch()
-            if dense:
-                vec = vec.to_dense()
             batch.append(vec)
 
-        return torch.stack(batch, dim=1)
+        return batch
 
     def get_ngram_feats(self, sentence):
         if not self.ngrams:
