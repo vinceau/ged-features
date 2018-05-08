@@ -83,7 +83,7 @@ class WordSparse(object):
         chars = self.get_chars(word)
         if chars not in self.char2id:
             if not addunk:
-                return self.start_char2id['UNKCP']
+                return self.char2id['UNKCP']
             self.char2id[chars] = len(self.char2id)
         return self.char2id[chars]
 
@@ -139,7 +139,7 @@ class WordSparse(object):
         return length
 
     def word2feat(self, word):
-        char_idx = self.start_char_index(word)
+        char_idx = self.get_char_index(word)
         char_sparse = ZeroOneRowSparse.from_index(char_idx, len(self.char2id))
 
         joined = char_sparse
