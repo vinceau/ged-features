@@ -38,7 +38,7 @@ class LogProbs(object):
     def get_log_prob(self, n, w):
         return self.get_prob_helper(n, w, 'log_prob')
 
-    def get_prob_helper(self, n, w, p_type)
+    def get_prob_helper(self, n, w, p_type):
         if not self.has_ngram_data(n):
             raise MissingNgramDataException('There is no {}-gram data loaded.'.format(n))
         try:
