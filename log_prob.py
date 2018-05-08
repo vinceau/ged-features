@@ -56,6 +56,13 @@ class LogProbs(object):
         for gram in self._ngram(sentence, n):
             res.append(self.get_log_prob(n, ' '.join(gram)))
         return res
+    
+    def ngram_raw_probs(self, n, sentence):
+        res = []
+        # add the unigram as the first token
+        for gram in self._ngram(sentence, n):
+            res.append(self.get_prob_helper(n, ' '.join(gram), 'prob'))
+        return res
 
 
 """

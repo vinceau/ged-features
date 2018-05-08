@@ -406,6 +406,34 @@ class WordFeatures(object):
         return [SimpleRowSparse(p) for p in res]
 
 
+    def get_raw_ngram_probs(self, sentence):
+        if not self.ngrams:
+            print('ngrams isn\'t enabled')
+            return
+
+        # get unigram data first, raw probs
+        probs = self.log_probs.ngram_raw_probs(1, sentence)
+        res = [[p] for p in probs]
+
+#       # get bigram data, raw probs
+#       if self.ngrams >= 2:
+#           bigrams = self.log_probs.ngram_raw_probs(2, sentence)
+#           left_bigrams = [probs[0]] + bigrams
+#           right_bigrams = bigrams + [probs[-1]]
+#           for i, (l, r) in enumerate(zip(left_bigrams, right_bigrams)):
+#               res[i].extend([min(l,r), max(l, r)])
+
+        return [SimpleRowSparse(p) for p in res]
+
+
+    def get_raw_ngram_probs_stacked(self, sentence):
+        sparses = self.get_raw_ngram_probs(sentence)
+        res = sparses[0]
+        for s in sparses[1:]:
+            res = res.stack(s)
+        return res
+
+
 """
 import json
 with open('test.json', 'r') as f:
