@@ -261,7 +261,7 @@ class WordFeatures(object):
         self.log_probs = LogProbs()
 
         # make sure at least one of the features is enabled
-        if not any([use_static, use_posgrams, use_word_positions]):
+        if not any([use_static, use_posgrams, use_word_positions, ngrams]):
             raise NoWordFeaturesErrorException
 
         self.use_static = use_static
