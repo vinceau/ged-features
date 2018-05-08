@@ -244,19 +244,19 @@ class POSSparse(object):
 
 class WordFeatures(object):
 
-    def __init__(self, ngrams=None, min_pos_freq=1, join_posgrams=True, use_static=True, use_posgrams=True, use_word_positions=True):
+    def __init__(self, ngrams=None, min_pos_freq=1, join_posgrams=True, use_word_sparse=True, use_posgrams=True, use_word_positions=True, use_static=True):
         self.ps = POSSparse(window=1, min_pos_freq=min_pos_freq, join_posgrams=join_posgrams)
-        self.ws = WordSparse(num_chars=2)
+        self.ws = WordSparse(num_chars=2, use_static=use_static)
 
         # load the ngram data
         self.ngrams = ngrams
         self.log_probs = LogProbs()
 
         # make sure at least one of the features is enabled
-        if not any([use_static, use_posgrams, use_word_positions, ngrams]):
+        if not any([use_word_sparse, use_posgrams, use_word_positions, ngrams]):
             raise NoWordFeaturesErrorException
 
-        self.use_static = use_static
+        self.use_word_sparse = use_word_sparse
         self.use_posgrams = use_posgrams
         self.use_word_positions = use_word_positions
 
@@ -279,7 +279,7 @@ class WordFeatures(object):
 
     def sparse_length(self):
         total = 0
-        if self.use_static:
+        if self.use_word_sparse:
             total += self.ws.sparse_length()
         if self.use_posgrams:
             total += self.ps.sparse_length()
@@ -309,7 +309,7 @@ class WordFeatures(object):
         # first get sentence only word features
         # list of Sparse() for each word
         features = []
-        if self.use_static:
+        if self.use_word_sparse:
             word_sparse = self.ws.sent2feat(sentence)
             features.append(word_sparse)
 
