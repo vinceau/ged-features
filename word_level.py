@@ -244,16 +244,21 @@ class POSSparse(object):
 
 class WordFeatures(object):
 
-    def __init__(self, ngrams=None, min_pos_freq=1, join_posgrams=True, use_word_sparse=True, use_posgrams=True, use_word_positions=True, use_static=True):
+    def __init__(self, ngram_data=None, min_pos_freq=1, join_posgrams=True, use_word_sparse=True, use_posgrams=True, use_word_positions=True, use_static=True, use_ngram_feats=False):
         self.ps = POSSparse(window=1, min_pos_freq=min_pos_freq, join_posgrams=join_posgrams)
         self.ws = WordSparse(num_chars=2, use_static=use_static)
 
         # load the ngram data
-        self.ngrams = ngrams
+        self.ngrams = 0
         self.log_probs = LogProbs()
+        if ngram_data:
+            self.add_ngram_data(ngram_data)
+
+        # make sure we have both the data and it enabled
+        self.use_ngram_feats = ngram_data and use_ngram_feats
 
         # make sure at least one of the features is enabled
-        if not any([use_word_sparse, use_posgrams, use_word_positions, ngrams]):
+        if not any([use_word_sparse, use_posgrams, use_word_positions, self.use_ngram_feats]):
             raise NoWordFeaturesErrorException
 
         self.use_word_sparse = use_word_sparse
@@ -261,11 +266,7 @@ class WordFeatures(object):
         self.use_word_positions = use_word_positions
 
     def add_ngram_data(self, list_of_data):
-        if not self.ngrams:
-            print('ngrams isn\'t enabled during declaration')
-            return
-
-        assert(len(list_of_data) == self.ngrams)
+        self.ngrams = len(list_of_data)
         for n, data in zip(list(range(1, self.ngrams + 1)), list_of_data):
             self.log_probs.add_ngram_data(n, data)
 
@@ -286,7 +287,7 @@ class WordFeatures(object):
         if self.use_word_positions:
             # plus two for word pos from start, and from end
             total += 2
-        if self.ngrams:
+        if self.use_ngram_feats:
             # we will always add the unigrams
             total += 1
             # plus two for word pos from start, and from end
@@ -323,7 +324,7 @@ class WordFeatures(object):
             positions = self.word_position_sparse(sentence)
             features.append(positions)
 
-        if self.ngrams:
+        if self.use_ngram_feats:
             ngram_feats = self.get_ngram_feats(sentence)
             features.append(ngram_feats)
 
