@@ -36,10 +36,13 @@ class LogProbs(object):
         return n in self.ngram_jsons.keys()
 
     def get_log_prob(self, n, w):
+        return self.get_prob_helper(n, w, 'log_prob')
+
+    def get_prob_helper(self, n, w, p_type)
         if not self.has_ngram_data(n):
             raise MissingNgramDataException('There is no {}-gram data loaded.'.format(n))
         try:
-            return self.ngram_jsons[n][w]['log_prob']
+            return self.ngram_jsons[n][w][p_type]
         except KeyError:
             return self.log_prob(0, self.total_counts[n])
 
