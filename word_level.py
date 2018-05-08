@@ -46,16 +46,14 @@ Word level features:
 
 class WordSparse(object):
 
-    def __init__(self, num_chars=2):
+    def __init__(self, num_chars=2, use_static=True):
         """num_chars is the number of letters of the beginning and end to encode
         """
-        self.start_char2id = {
-            'UNKCP': 0
-        }
-        self.end_char2id = {
+        self.char2id = {
             'UNKCP': 0
         }
         self.num_chars = num_chars
+        self.use_static = use_static
         self.static_feats = [
             self.has_doubles,
             self.is_capital,
@@ -67,36 +65,27 @@ class WordSparse(object):
         ]
 
     def preprocess(self, word):
-        self.start_char_index(word, addunk=True)
-        self.end_char_index(word, addunk=True)
+        self.get_char_index(word, addunk=True)
 
-    def start_chars(self, w):
+    def get_chars(self, w):
+        # get first two chars
         start_cp = w[:self.num_chars]
         while len(start_cp) < self.num_chars:
             start_cp += ' '
-        return start_cp
 
-    def end_chars(self, w):
+        #get last two chars
         end_cp = w[-self.num_chars:]
         while len(end_cp) < self.num_chars:
             end_cp = ' ' + end_cp
-        return end_cp
+        return start_cp + end_cp
 
-    def start_char_index(self, word, addunk=False):
-        start = self.start_chars(word)
-        if start not in self.start_char2id:
+    def get_char_index(self, word, addunk=False):
+        chars = self.get_chars(word)
+        if chars not in self.char2id:
             if not addunk:
                 return self.start_char2id['UNKCP']
-            self.start_char2id[start] = len(self.start_char2id)
-        return self.start_char2id[start]
-
-    def end_char_index(self, word, addunk=False):
-        end = self.end_chars(word)
-        if end not in self.end_char2id:
-            if not addunk:
-                return self.end_char2id['UNKCP']
-            self.end_char2id[end] = len(self.end_char2id)
-        return self.end_char2id[end]
+            self.char2id[chars] = len(self.char2id)
+        return self.char2id[chars]
 
     @staticmethod
     def has_doubles(word):
@@ -144,17 +133,20 @@ class WordSparse(object):
         return 1
 
     def sparse_length(self):
-        return len(self.static_feats) + len(self.start_char2id) + len(self.end_char2id)
+        length = len(self.char2id)
+        if self.use_static:
+            length += len(self.static_feats)
+        return length
 
     def word2feat(self, word):
-        feats = [ f(word) for f in self.static_feats ]
-        feat_sparse = SimpleRowSparse(feats)
-        start_idx = self.start_char_index(word)
-        start_sparse = ZeroOneRowSparse.from_index(start_idx, len(self.start_char2id))
-        end_idx = self.end_char_index(word)
-        end_sparse = ZeroOneRowSparse.from_index(end_idx, len(self.end_char2id))
+        char_idx = self.start_char_index(word)
+        char_sparse = ZeroOneRowSparse.from_index(char_idx, len(self.char2id))
 
-        joined = feat_sparse + start_sparse + end_sparse
+        joined = char_sparse
+        if self.use_static:
+            feats = [ f(word) for f in self.static_feats ]
+            joined += SimpleRowSparse(feats)
+
         # for peace of mind, make sure it's the same size
         assert(joined.size[1] == self.sparse_length())
 
