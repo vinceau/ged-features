@@ -435,6 +435,27 @@ class WordFeatures(object):
         return res
 
 
+    def batch_raw_probs(self, sents, max_sent_length=None):
+        # take the first sentence as the max length if not provided
+        if not max_sent_length:
+            max_sent_length = len(sents[0])
+
+        prob_length = 3  # 1 for unigram, 2 for bigram
+
+        batch = []
+        for s in sents:
+            if not s:  # we have an empty padding sentence
+                vec = Sparse([max_sent_length, prob_length])
+            else:
+                vec = self.get_raw_ngram_probs_stacked(s)
+                # set the number of rows
+                vec.size[0] = max_sent_length
+            batch.append(vec)
+
+        return batch
+
+
+
 """
 import json
 with open('test.json', 'r') as f:
