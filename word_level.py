@@ -254,7 +254,7 @@ class POSSparse(object):
 
 class WordFeatures(object):
 
-    def __init__(self, ngram_data=None, min_pos_freq=1, join_posgrams=True, use_word_sparse=True, use_posgrams=True, use_word_positions=True, use_static=True, use_ngram_feats=False):
+    def __init__(self, ngram_data=None, min_pos_freq=1, join_posgrams=False, use_word_sparse=False, use_posgrams=False, use_word_positions=False, use_static=False, use_ngram_feats=False):
         self.ps = POSSparse(window=1, min_pos_freq=min_pos_freq, join_posgrams=join_posgrams)
         if use_word_sparse:
             num_chars = 2
