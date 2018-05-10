@@ -44,7 +44,9 @@ class LogProbs(object):
         try:
             return self.ngram_jsons[n][w][p_type]
         except KeyError:
-            return self.log_prob(0, self.total_counts[n])
+            if p_type == 'log_prob':
+                return self.log_prob(0, self.total_counts[n])
+            return 0
 
     @staticmethod
     def _ngram(input_list, n):
