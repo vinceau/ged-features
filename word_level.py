@@ -407,14 +407,14 @@ class WordFeatures(object):
         return [SimpleRowSparse(p) for p in res]
 
 
-    def get_raw_ngram_probs(self, sentence):
+    def get_ngram_prob_feats(self, sentence, threshold=5e-07):
         if not self.ngrams:
             print('ngrams isn\'t enabled')
             return
 
         # get unigram data first, raw probs
         probs = self.log_probs.ngram_raw_probs(1, sentence)
-        res = [[p] for p in probs]
+        res = [[0 if p > threshold else 1] for p in probs]
 
         # get bigram data, raw probs
         if self.ngrams >= 2:
@@ -422,20 +422,20 @@ class WordFeatures(object):
             left_bigrams = [probs[0]] + bigrams
             right_bigrams = bigrams + [probs[-1]]
             for i, (l, r) in enumerate(zip(left_bigrams, right_bigrams)):
-                res[i].extend([min(l,r), max(l, r)])
+                res[i].extend([0 if min(l,r) > threshold else 1, 0 if max(l, r) > threshold else 1])
 
         return [SimpleRowSparse(p) for p in res]
 
 
-    def get_raw_ngram_probs_stacked(self, sentence):
-        sparses = self.get_raw_ngram_probs(sentence)
+    def get_ngram_prob_feats_stacked(self, sentence):
+        sparses = self.get_ngram_prob_feats(sentence)
         res = sparses[0]
         for s in sparses[1:]:
             res = res.stack(s)
         return res
 
 
-    def batch_raw_probs(self, sents, max_sent_length=None):
+    def batch_prob_features(self, sents, max_sent_length=None):
         # take the first sentence as the max length if not provided
         if not max_sent_length:
             max_sent_length = len(sents[0])
@@ -447,7 +447,7 @@ class WordFeatures(object):
             if not s:  # we have an empty padding sentence
                 vec = Sparse([max_sent_length, prob_length])
             else:
-                vec = self.get_raw_ngram_probs_stacked(s)
+                vec = self.get_ngram_prob_feats_stacked(s)
                 # set the number of rows
                 vec.size[0] = max_sent_length
             batch.append(vec)
