@@ -325,7 +325,7 @@ class WordFeatures(object):
             features.append(positions)
 
         if self.use_ngram_feats:
-            ngram_feats = self.get_ngram_feats(sentence)
+            ngram_feats = self.get_ngram_prob_feats(sentence)
             features.append(ngram_feats)
 
         # make sure we have a feature for each word
