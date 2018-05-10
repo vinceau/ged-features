@@ -80,6 +80,9 @@ class WordSparse(object):
         return start_cp + end_cp
 
     def get_char_index(self, word, addunk=False):
+        if self.num_chars <= 0:
+            return None
+
         chars = self.get_chars(word)
         if chars not in self.char2id:
             if not addunk:
@@ -133,19 +136,26 @@ class WordSparse(object):
         return 1
 
     def sparse_length(self):
-        length = len(self.char2id)
+        length = 0
+        if self.num_chars > 0:
+            length += len(self.char2id)
         if self.use_static:
             length += len(self.static_feats)
         return length
 
     def word2feat(self, word):
-        char_idx = self.get_char_index(word)
-        char_sparse = ZeroOneRowSparse.from_index(char_idx, len(self.char2id))
+        if self.num_chars > 0:
+            char_idx = self.get_char_index(word)
+            char_sparse = ZeroOneRowSparse.from_index(char_idx, len(self.char2id))
+            joined = char_sparse
 
-        joined = char_sparse
         if self.use_static:
             feats = [ f(word) for f in self.static_feats ]
-            joined += SimpleRowSparse(feats)
+            static = SimpleRowSparse(feats)
+            if self.num_chars > 0:
+                joined += static
+            else:
+                joined = static
 
         # for peace of mind, make sure it's the same size
         assert(joined.size[1] == self.sparse_length())
@@ -246,7 +256,11 @@ class WordFeatures(object):
 
     def __init__(self, ngram_data=None, min_pos_freq=1, join_posgrams=True, use_word_sparse=True, use_posgrams=True, use_word_positions=True, use_static=True, use_ngram_feats=False):
         self.ps = POSSparse(window=1, min_pos_freq=min_pos_freq, join_posgrams=join_posgrams)
-        self.ws = WordSparse(num_chars=2, use_static=use_static)
+        if use_word_sparse:
+            num_chars = 2
+        else:
+            num_chars = 0
+        self.ws = WordSparse(num_chars=num_chars, use_static=use_static)
 
         # load the ngram data
         self.ngrams = 0
@@ -256,12 +270,12 @@ class WordFeatures(object):
 
         # make sure we have both the data and it enabled
         self.use_ngram_feats = ngram_data and use_ngram_feats
+        self.use_word_sparse = use_word_sparse or use_static
 
         # make sure at least one of the features is enabled
-        if not any([use_word_sparse, use_posgrams, use_word_positions, self.use_ngram_feats]):
+        if not any([self.use_word_sparse, use_posgrams, use_word_positions, self.use_ngram_feats]):
             raise NoWordFeaturesErrorException
 
-        self.use_word_sparse = use_word_sparse
         self.use_posgrams = use_posgrams
         self.use_word_positions = use_word_positions
 
