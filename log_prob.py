@@ -63,7 +63,10 @@ class LogProbs(object):
         res = []
         # add the unigram as the first token
         for gram in self._ngram(sentence, n):
-            res.append(self.get_prob_helper(n, ' '.join(gram), 'prob'))
+            p = self.get_prob_helper(n, ' '.join(gram), 'prob')
+            # if it's a probability it should be greater than or equal to zero
+            assert(p >= 0)
+            res.append(p)
         return res
 
 
