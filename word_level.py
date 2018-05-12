@@ -33,6 +33,126 @@ class NoWordFeaturesErrorException(Exception):
         Exception.__init__(self, 'No word features were enabled')
 
 
+
+class OrigWordSparse(object):
+
+    def __init__(self, num_chars=2):
+        """num_chars is the number of letters of the beginning and end to encode
+        """
+        self.start_char2id = {
+            'UNKCP': 0
+        }
+        self.end_char2id = {
+            'UNKCP': 0
+        }
+        self.num_chars = num_chars
+        self.static_feats = [
+            self.has_doubles,
+            self.is_capital,
+            self.trailing_s,
+            self.starting_vowel,
+            self.contains_num,
+            self.contains_sym,
+            self.only_sym,
+        ]
+
+    def preprocess(self, word):
+        self.start_char_index(word, addunk=True)
+        self.end_char_index(word, addunk=True)
+
+    def start_chars(self, w):
+        start_cp = w[:self.num_chars]
+        while len(start_cp) < self.num_chars:
+            start_cp += ' '
+        return start_cp
+
+    def end_chars(self, w):
+        end_cp = w[-self.num_chars:]
+        while len(end_cp) < self.num_chars:
+            end_cp = ' ' + end_cp
+        return end_cp
+
+    def start_char_index(self, word, addunk=False):
+        start = self.start_chars(word)
+        if start not in self.start_char2id:
+            if not addunk:
+                return self.start_char2id['UNKCP']
+            self.start_char2id[start] = len(self.start_char2id)
+        return self.start_char2id[start]
+
+    def end_char_index(self, word, addunk=False):
+        end = self.end_chars(word)
+        if end not in self.end_char2id:
+            if not addunk:
+                return self.end_char2id['UNKCP']
+            self.end_char2id[end] = len(self.end_char2id)
+        return self.end_char2id[end]
+
+    @staticmethod
+    def has_doubles(word):
+        if bool(re.search(r'([a-zA-Z])\1', word)):
+            return 1
+        return 0
+
+    @staticmethod
+    def is_capital(word):
+        if word[0].isupper():
+            return 1
+        return 0
+
+    @staticmethod
+    def trailing_s(word):
+        if word[-1].lower() == 's':
+            return 1
+        return 0
+
+    @staticmethod
+    def starting_vowel(word):
+        if word[0].lower() in 'aeiou':
+            return 1
+        return 0
+
+    @staticmethod
+    def contains_num(word):
+        for l in word:
+            if l.isdigit():
+                return 1
+        return 0
+
+    @staticmethod
+    def contains_sym(word):
+        for l in word:
+            if l in string.punctuation:
+                return 1
+        return 0
+
+    @staticmethod
+    def only_sym(word):
+        for l in word:
+            if l not in string.punctuation:
+                return 0
+        return 1
+
+    def sparse_length(self):
+        return len(self.static_feats) + len(self.start_char2id) + len(self.end_char2id)
+
+    def word2feat(self, word):
+        feats = [ f(word) for f in self.static_feats ]
+        feat_sparse = SimpleRowSparse(feats)
+        start_idx = self.start_char_index(word)
+        start_sparse = ZeroOneRowSparse.from_index(start_idx, len(self.start_char2id))
+        end_idx = self.end_char_index(word)
+        end_sparse = ZeroOneRowSparse.from_index(end_idx, len(self.end_char2id))
+
+        joined = feat_sparse + start_sparse + end_sparse
+        # for peace of mind, make sure it's the same size
+        assert(joined.size[1] == self.sparse_length())
+
+        return joined
+
+    def sent2feat(self, sentence):
+        return [self.word2feat(w) for w in sentence]
+
 """
 Word level features:
 
